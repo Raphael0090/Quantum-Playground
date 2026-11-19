@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum Playground</title>
+<style>
+  :root{
+    --bg: #0a0e14;
+    --panel: #10151f;
+    --panel-2: #151b28;
+    --line: #232b3a;
+    --ink: #d8e0ee;
+    --ink-dim: #8592a8;
+    --violet: #8b7cf6;
+    --cyan: #4fd6d0;
+    --amber: #e8a33d;
+    --rose: #e8618c;
+    --mono: 'IBM Plex Mono', 'SF Mono', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, Segoe UI, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:var(--sans); }
+  body{ min-height:100vh; }
+
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 18px 28px; border-bottom:1px solid var(--line);
+    background: linear-gradient(180deg, #0d1220, #0a0e14);
+    position: sticky; top:0; z-index: 10;
+  }
+  .brand{ display:flex; align-items:baseline; gap:10px; }
+  .brand .glyph{ font-size:1.3rem; color:var(--violet); }
+  .brand h1{ font-size:1.05rem; font-weight:600; margin:0; letter-spacing:0.2px; }
+  .brand .sub{ color:var(--ink-dim); font-size:0.78rem; }
+
+  nav{ display:flex; gap:4px; }
+  nav button{
+    background:transparent; border:1px solid transparent; color:var(--ink-dim);
+    padding: 8px 14px; border-radius: 7px; font-size:0.82rem; font-family:var(--sans);
+    cursor:pointer; transition: all .15s ease;
+  }
+  nav button:hover{ color:var(--ink); background: var(--panel-2); }
+  nav button.active{ color:var(--bg); background: var(--cyan); font-weight:600; }
+
+  main{ max-width: 1180px; margin: 0 auto; padding: 28px; }
+  .module{ display:none; animation: fade .25s ease; }
+  .module.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform: translateY(4px);} to{opacity:1; transform:none;} }
+
+  .module h2{ font-size:1.3rem; margin: 0 0 4px; }
+  .module p.lede{ color:var(--ink-dim); max-width: 640px; line-height:1.55; font-size:0.92rem; margin: 0 0 22px;}
+
+  .grid{ display:grid; grid-template-columns: 340px 1fr; gap:20px; align-items:start; }
+  @media (max-width: 860px){ .grid{ grid-template-columns: 1fr; } }
+
+  .card{
+    background: var(--panel); border:1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .card + .card{ margin-top: 16px; }
+  .card h3{ margin:0 0 14px; font-size:0.78rem; text-transform:none; color: var(--ink-dim); font-weight:600; letter-spacing:0.2px; }
+
+  .field{ margin-bottom: 16px; }
+  .field label{ display:block; font-size:0.8rem; color: var(--ink-dim); margin-bottom:6px; }
+  .field .val{ color: var(--cyan); font-family: var(--mono); }
+
+  input[type=range]{ width:100%; accent-color: var(--violet); }
+
+  .segmented{ display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .segmented button{
+    flex:1; background: var(--panel-2); border:none; color: var(--ink-dim);
+    padding: 9px 8px; font-family: var(--sans); font-size:0.82rem; cursor:pointer;
+    border-right:1px solid var(--line);
+  }
+  .segmented button:last-child{ border-right:none; }
+  .segmented button.active{ background: var(--violet); color:#0a0e14; font-weight:600; }
+
+  .party-toggle{ display:flex; gap:8px; margin-bottom: 10px; }
+  .party-toggle .party{ flex:1; text-align:center; }
+  .party-toggle .party .name{ font-size:0.7rem; color:var(--ink-dim); margin-bottom:5px; }
+  .party-toggle .party .pair{ display:flex; border:1px solid var(--line); border-radius:7px; overflow:hidden; }
+  .party-toggle .party .pair button{
+    flex:1; background:var(--panel-2); border:none; color:var(--ink-dim); padding:7px 0;
+    font-family: var(--mono); cursor:pointer;
+  }
+  .party-toggle .party .pair button.active{ background: var(--cyan); color:#0a0e14; font-weight:700; }
+
+  button.run{
+    background: var(--violet); color:#0a0e14; border:none; border-radius:8px;
+    padding: 10px 16px; font-weight:600; cursor:pointer; font-size:0.85rem; width:100%;
+  }
+  button.run:hover{ filter: brightness(1.08); }
+
+  .stat-row{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
+  .stat{
+    background: var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    padding: 14px 18px; min-width: 130px; flex:1;
+  }
+  .stat .label{ font-size:0.7rem; color:var(--ink-dim); margin-bottom:6px; }
+  .stat .num{ font-family: var(--mono); font-size:1.5rem; color: var(--ink); }
+  .stat .num.big{ font-size:1.9rem; }
+  .stat .accent{ color: var(--cyan); }
+  .stat .accent2{ color: var(--amber); }
+  .stat .accent3{ color: var(--rose); }
+
+  table.terms{ width:100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.85rem; }
+  table.terms td, table.terms th{ padding:8px 10px; border-bottom:1px solid var(--line); text-align:left; }
+  table.terms th{ color: var(--ink-dim); font-weight:500; font-size:0.72rem; text-transform:none; }
+
+  .bound-bar{ position:relative; height:34px; background: var(--panel-2); border-radius:8px; margin: 10px 0 4px; border:1px solid var(--line); }
+  .bound-bar .track{ position:absolute; top:50%; left:14px; right:14px; height:2px; background: var(--line); transform: translateY(-50%); }
+  .bound-bar .mark{ position:absolute; top:50%; width:2px; height:16px; background: var(--ink-dim); transform: translate(-50%,-50%); }
+  .bound-bar .mark .tag{ position:absolute; top:18px; left:50%; transform: translateX(-50%); font-size:0.65rem; color:var(--ink-dim); white-space:nowrap; }
+  .bound-bar .dot{ position:absolute; top:50%; width:14px; height:14px; border-radius:50%; background: var(--rose); transform: translate(-50%,-50%); box-shadow: 0 0 12px rgba(232,97,140,0.7); transition: left .3s ease; }
+
+  .outcome-tabs{ display:flex; gap:6px; margin-bottom: 14px; }
+  .outcome-tabs button{
+    flex:1; background: var(--panel-2); border:1px solid var(--line); color:var(--ink-dim);
+    padding:9px 4px; border-radius:8px; font-family: var(--mono); font-size:0.78rem; cursor:pointer;
+  }
+  .outcome-tabs button.active{ background: var(--cyan); color:#0a0e14; font-weight:700; border-color: var(--cyan); }
+
+  .amp-list{ font-family: var(--mono); font-size:0.85rem; line-height:1.9; }
+  .amp-list .ket{ color: var(--ink-dim); }
+  .amp-list .re{ color: var(--cyan); }
+  .amp-list .im{ color: var(--rose); }
+
+  .bits-picker{ display:flex; gap:8px; margin-bottom:16px; }
+  .bits-picker button{
+    flex:1; background: var(--panel-2); border:1px solid var(--line); color:var(--ink);
+    padding: 11px 0; border-radius:8px; font-family: var(--mono); font-size:1rem; cursor:pointer;
+  }
+  .bits-picker button.active{ background: var(--amber); color:#0a0e14; font-weight:700; border-color: var(--amber); }
+
+  .matrix{ display:grid; grid-template-columns: repeat(4, 1fr); gap:4px; font-family: var(--mono); font-size:0.72rem; }
+  .matrix .cell{
+    background: var(--panel-2); border-radius:6px; padding: 8px 4px; text-align:center;
+    border: 1px solid var(--line);
+  }
+  .matrix .cell .re{ color: var(--ink); }
+  .matrix .cell .im{ color: var(--ink-dim); font-size: 0.66rem; }
+
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width: 700px){ .two-col{ grid-template-columns: 1fr; } }
+
+  .status-line{ font-size:0.78rem; color: var(--ink-dim); margin-top:10px; }
+  .success{ color: var(--cyan); }
+  .fail{ color: var(--rose); }
+
+  .footer-note{ color: var(--ink-dim); font-size:0.75rem; margin-top: 28px; border-top:1px solid var(--line); padding-top:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="glyph">◈</span>
+    <div>
+      <h1>Quantum Playground</h1>
+      <div class="sub">complex-amplitude engine · FastAPI + numpy</div>
+    </div>
+  </div>
+  <nav id="tabs">
+    <button data-mod="mermin" class="active">GHZ / W · Mermin</button>
+    <button data-mod="teleport">Teleport · Superdense</button>
+    <button data-mod="density">Density Matrix</button>
+    <button data-mod="tomography">Tomography</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ============================ MODULE 1 ============================ -->
+  <section class="module active" id="mod-mermin">
+    <h2>GHZ &amp; W states — the Mermin inequality</h2>
+    <p class="lede">Three parties each measure X or Y on their share of a three-qubit state. The Mermin witness
+      M = ⟨XYY⟩ + ⟨YXY⟩ + ⟨YYX⟩ − ⟨XXX⟩ is bounded by 2 for any local-hidden-variable model, but a genuinely
+      entangled GHZ state can saturate the algebraic maximum |M| = 4 — a bigger gap than CHSH's 2√2. The W state,
+      although entangled, gives exactly 0 on this particular witness.</p>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h3>State</h3>
+          <div class="segmented" id="mermin-state-picker">
+            <button data-state="ghz" class="active">GHZ</button>
+            <button data-state="w">W</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Custom joint measurement</h3>
+          <div class="party-toggle" id="party-toggle">
+            <div class="party" data-party="0"><div class="name">Party A</div><div class="pair"><button data-set="X" class="active">X</button><button data-set="Y">Y</button></div></div>
+            <div class="party" data-party="1"><div class="name">Party B</div><div class="pair"><button data-set="X">X</button><button data-set="Y" class="active">Y</button></div></div>
+            <div class="party" data-party="2"><div class="name">Party C</div><div class="pair"><button data-set="X">X</button><button data-set="Y" class="active">Y</button></div></div>
+          </div>
+          <div class="status-line">⟨<span id="joint-label">XYY</span>⟩ = <span class="val" id="joint-value">—</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="stat-row">
+          <div class="stat"><div class="label">Mermin value M</div><div class="num big" id="mermin-M">—</div></div>
+          <div class="stat"><div class="label">Classical bound</div><div class="num accent2">±2</div></div>
+          <div class="stat"><div class="label">Algebraic max</div><div class="num accent3">±4</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Where M lands</h3>
+          <div class="bound-bar" id="bound-bar">
+            <div class="track"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Canonical terms</h3>
+          <table class="terms">
+            <thead><tr><th>Term</th><th>Expectation</th></tr></thead>
+            <tbody id="mermin-terms"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ MODULE 2 ============================ -->
+  <section class="module" id="mod-teleport">
+    <h2>Teleportation &amp; superdense coding</h2>
+    <p class="lede">Set an arbitrary unknown qubit with polar/azimuthal Bloch angles, then step through Alice's four
+      possible Bell-basis measurement outcomes. Whichever outcome she gets, Bob's matching correction
+      (I / Z / X / XZ) reconstructs the original state with fidelity 1.0000 — every time. Superdense coding below
+      runs the same shared pair in reverse to send 2 classical bits with certainty.</p>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h3>Unknown qubit |ψ⟩</h3>
+          <div class="field">
+            <label>θ (polar) <span class="val" id="theta-val">1.047</span></label>
+            <input type="range" id="theta" min="0" max="3.14159" step="0.001" value="1.0472">
+          </div>
+          <div class="field">
+            <label>φ (azimuthal) <span class="val" id="phi-val">0.000</span></label>
+            <input type="range" id="phi" min="0" max="6.28318" step="0.001" value="0">
+          </div>
+          <div class="amp-list" id="psi-amps"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h3>Alice's measurement outcome</h3>
+          <div class="outcome-tabs" id="outcome-tabs">
+            <button data-i="0" class="active">00 · Φ⁺</button>
+            <button data-i="1">01 · Φ⁻</button>
+            <button data-i="2">10 · Ψ⁺</button>
+            <button data-i="3">11 · Ψ⁻</button>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><div class="label">Probability</div><div class="num" id="tp-prob">—</div></div>
+            <div class="stat"><div class="label">Bob's correction</div><div class="num accent2" id="tp-corr">—</div></div>
+            <div class="stat"><div class="label">Fidelity</div><div class="num accent" id="tp-fid">—</div></div>
+          </div>
+          <div class="amp-list" id="tp-bob"></div>
+        </div>
+
+        <div class="card">
+          <h3>Superdense coding — send 2 classical bits</h3>
+          <div class="bits-picker" id="sdc-bits">
+            <button data-bits="00" class="active">00</button>
+            <button data-bits="01">01</button>
+            <button data-bits="10">10</button>
+            <button data-bits="11">11</button>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><div class="label">Alice applies</div><div class="num accent2" id="sdc-op">—</div></div>
+            <div class="stat"><div class="label">Bob decodes</div><div class="num" id="sdc-bits-out">—</div></div>
+            <div class="stat"><div class="label">Result</div><div class="num" id="sdc-result">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ MODULE 3 ============================ -->
+  <section class="module" id="mod-density">
+    <h2>Density matrix, entropy &amp; mutual information</h2>
+    <p class="lede">Build ρ = F·|ψ⟩⟨ψ| + (1−F)·I/4 for any Bell state mixed with white noise at fidelity F, and watch
+      its von Neumann entropy, marginal entropies, and quantum mutual information move as F sweeps from a fully
+      mixed state to a pure maximally-entangled one.</p>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h3>Bell state</h3>
+          <div class="segmented" id="bell-picker">
+            <button data-kind="phi_plus" class="active">Φ⁺</button>
+            <button data-kind="phi_minus">Φ⁻</button>
+            <button data-kind="psi_plus">Ψ⁺</button>
+            <button data-kind="psi_minus">Ψ⁻</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Noise</h3>
+          <div class="field">
+            <label>Fidelity F <span class="val" id="dm-fid-val">1.000</span></label>
+            <input type="range" id="dm-fidelity" min="0" max="1" step="0.001" value="1">
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="stat-row">
+          <div class="stat"><div class="label">Entropy S(ρ)</div><div class="num" id="dm-entropy">—</div></div>
+          <div class="stat"><div class="label">S(A) / S(B)</div><div class="num" id="dm-marginal">—</div></div>
+          <div class="stat"><div class="label">Mutual info I(A:B)</div><div class="num accent" id="dm-mi">—</div></div>
+          <div class="stat"><div class="label">Purity Tr(ρ²)</div><div class="num accent2" id="dm-purity">—</div></div>
+        </div>
+        <div class="card">
+          <h3>ρ (4×4) — Re / Im</h3>
+          <div class="matrix" id="dm-matrix"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ MODULE 4 ============================ -->
+  <section class="module" id="mod-tomography">
+    <h2>Finite-shot tomography</h2>
+    <p class="lede">The same noisy Bell state is now reconstructed from simulated measurement statistics instead of
+      known exactly. Each of the 9 two-qubit Pauli settings gets a finite number of shots; the reconstructed ρ̂ is
+      compared to the ground truth via a Hilbert–Schmidt overlap that should climb toward 1 as shot count grows.</p>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h3>True state</h3>
+          <div class="segmented" id="tomo-bell-picker">
+            <button data-kind="phi_plus" class="active">Φ⁺</button>
+            <button data-kind="phi_minus">Φ⁻</button>
+            <button data-kind="psi_plus">Ψ⁺</button>
+            <button data-kind="psi_minus">Ψ⁻</button>
+          </div>
+          <div class="field" style="margin-top:16px;">
+            <label>Fidelity F <span class="val" id="tomo-fid-val">0.850</span></label>
+            <input type="range" id="tomo-fidelity" min="0" max="1" step="0.001" value="0.85">
+          </div>
+        </div>
+        <div class="card">
+          <h3>Shots per setting (×9 total)</h3>
+          <div class="segmented" id="shots-picker">
+            <button data-shots="20">20</button>
+            <button data-shots="200" class="active">200</button>
+            <button data-shots="2000">2000</button>
+          </div>
+          <button class="run" id="tomo-run" style="margin-top:14px;">Run tomography</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="stat-row">
+          <div class="stat"><div class="label">Total shots</div><div class="num" id="tomo-total">—</div></div>
+          <div class="stat"><div class="label">Hilbert–Schmidt overlap</div><div class="num big accent" id="tomo-overlap">—</div></div>
+        </div>
+        <div class="card two-col">
+          <div>
+            <h3>ρ true (Re)</h3>
+            <div class="matrix" id="tomo-true"></div>
+          </div>
+          <div>
+            <h3>ρ̂ reconstructed (Re)</h3>
+            <div class="matrix" id="tomo-hat"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer-note">All four modules call the same numpy-backed FastAPI engine at <code>/api/*</code> — nothing here is precomputed or hardcoded.</div>
+</main>
+
+<script>
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const fmt = (x, d=4) => (typeof x === 'number' ? x.toFixed(d) : x);
+
+// ---------------- Tab navigation ----------------
+$$('#tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('#tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    $$('.module').forEach(m => m.classList.remove('active'));
+    $('#mod-' + btn.dataset.mod).classList.add('active');
+  });
+});
+
+// ======================================================================
+// MODULE 1: GHZ / W / Mermin
+// ======================================================================
+let merminState = 'ghz';
+const partySettings = ['X', 'Y', 'Y'];
+
+async function loadMermin() {
+  const r = await fetch(`/api/mermin/${merminState}`);
+  const data = await r.json();
+  $('#mermin-M').textContent = fmt(data.M);
+  const rows = Object.entries(data.terms).map(([name, val]) => {
+    const sign = name === 'XXX' ? '−' : '+';
+    return `<tr><td>${sign} ⟨${name}⟩</td><td>${fmt(val)}</td></tr>`;
+  }).join('');
+  $('#mermin-terms').innerHTML = rows;
+  drawBoundBar(data.M);
+}
+
+function drawBoundBar(M) {
+  const bar = $('#bound-bar');
+  bar.querySelectorAll('.mark, .dot').forEach(e => e.remove());
+  const marks = [
+    { x: -4, label: '−4' }, { x: -2, label: '−2 (classical)' },
+    { x: 0, label: '0' },
+    { x: 2, label: '+2 (classical)' }, { x: 4, label: '+4' },
+  ];
+  const toPct = x => 7 + ((x + 4) / 8) * 86; // map [-4,4] -> [7%,93%]
+  marks.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'mark';
+    el.style.left = toPct(m.x) + '%';
+    el.innerHTML = `<span class="tag">${m.label}</span>`;
+    bar.appendChild(el);
+  });
+  const dot = document.createElement('div');
+  dot.className = 'dot';
+  dot.style.left = toPct(Math.max(-4, Math.min(4, M))) + '%';
+  bar.appendChild(dot);
+}
+
+async function loadJointExpectation() {
+  const r = await fetch('/api/joint-expectation', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ state: merminState, settings: partySettings }),
+  });
+  const data = await r.json();
+  $('#joint-label').textContent = partySettings.join('');
+  $('#joint-value').textContent = fmt(data.expectation);
+}
+
+$('#mermin-state-picker').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  $$('#mermin-state-picker button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  merminState = e.target.dataset.state;
+  loadMermin();
+  loadJointExpectation();
+});
+
+$('#party-toggle').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  const partyEl = e.target.closest('.party');
+  const idx = parseInt(partyEl.dataset.party, 10);
+  partyEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  partySettings[idx] = e.target.dataset.set;
+  loadJointExpectation();
+});
+
+// ======================================================================
+// MODULE 2: Teleportation & superdense coding
+// ======================================================================
+let currentOutcome = 0;
+let teleportData = null;
+
+function renderPsi() {
+  const theta = parseFloat($('#theta').value);
+  const phi = parseFloat($('#phi').value);
+  $('#theta-val').textContent = theta.toFixed(3);
+  $('#phi-val').textContent = phi.toFixed(3);
+}
+
+async function loadTeleportation() {
+  const theta = parseFloat($('#theta').value);
+  const phi = parseFloat($('#phi').value);
+  const r = await fetch(`/api/teleportation?theta=${theta}&phi=${phi}`);
+  teleportData = await r.json();
+  const [a, b] = teleportData.original_state;
+  $('#psi-amps').innerHTML =
+    `<div><span class="ket">|0⟩:</span> <span class="re">${fmt(a[0])}</span> <span class="im">${a[1]>=0?'+':''}${fmt(a[1])}i</span></div>` +
+    `<div><span class="ket">|1⟩:</span> <span class="re">${fmt(b[0])}</span> <span class="im">${b[1]>=0?'+':''}${fmt(b[1])}i</span></div>`;
+  renderOutcome();
+}
+
+function renderOutcome() {
+  if (!teleportData) return;
+  const o = teleportData.outcomes[currentOutcome];
+  $('#tp-prob').textContent = fmt(o.probability, 3);
+  $('#tp-corr').textContent = o.correction;
+  $('#tp-fid').textContent = fmt(o.fidelity);
+  const [a, b] = o.bob_state_after_correction;
+  $('#tp-bob').innerHTML =
+    `<div>Bob after correction —</div>` +
+    `<div><span class="ket">|0⟩:</span> <span class="re">${fmt(a[0])}</span> <span class="im">${a[1]>=0?'+':''}${fmt(a[1])}i</span></div>` +
+    `<div><span class="ket">|1⟩:</span> <span class="re">${fmt(b[0])}</span> <span class="im">${b[1]>=0?'+':''}${fmt(b[1])}i</span></div>`;
+}
+
+$('#theta').addEventListener('input', () => { renderPsi(); loadTeleportation(); });
+$('#phi').addEventListener('input', () => { renderPsi(); loadTeleportation(); });
+
+$('#outcome-tabs').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  $$('#outcome-tabs button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  currentOutcome = parseInt(e.target.dataset.i, 10);
+  renderOutcome();
+});
+
+async function runSuperdense(bits) {
+  const r = await fetch('/api/superdense', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bits }),
+  });
+  const data = await r.json();
+  $('#sdc-op').textContent = data.alice_operation;
+  $('#sdc-bits-out').textContent = data.recovered_bits;
+  $('#sdc-result').innerHTML = data.success
+    ? `<span class="success">recovered ✓</span>` : `<span class="fail">mismatch ✕</span>`;
+}
+
+$('#sdc-bits').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  $$('#sdc-bits button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  runSuperdense(e.target.dataset.bits);
+});
+
+// ======================================================================
+// MODULE 3: Density matrix
+// ======================================================================
+let dmKind = 'phi_plus';
+
+function renderMatrix(containerId, real, imag) {
+  const el = $(containerId);
+  let html = '';
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      const re = real[i][j], im = imag ? imag[i][j] : 0;
+      html += `<div class="cell"><div class="re">${re.toFixed(3)}</div>${imag ? `<div class="im">${im>=0?'+':''}${im.toFixed(3)}i</div>` : ''}</div>`;
+    }
+  }
+  el.innerHTML = html;
+}
+
+async function loadDensityMatrix() {
+  const fidelity = parseFloat($('#dm-fidelity').value);
+  $('#dm-fid-val').textContent = fidelity.toFixed(3);
+  const r = await fetch(`/api/density-matrix?kind=${dmKind}&fidelity=${fidelity}`);
+  const data = await r.json();
+  $('#dm-entropy').textContent = fmt(data.entropy, 3);
+  $('#dm-marginal').textContent = `${fmt(data.entropy_A, 3)} / ${fmt(data.entropy_B, 3)}`;
+  $('#dm-mi').textContent = fmt(data.mutual_information, 3);
+  $('#dm-purity').textContent = fmt(data.purity, 3);
+  renderMatrix('#dm-matrix', data.rho_real, data.rho_imag);
+}
+
+$('#bell-picker').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  $$('#bell-picker button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  dmKind = e.target.dataset.kind;
+  loadDensityMatrix();
+});
+$('#dm-fidelity').addEventListener('input', loadDensityMatrix);
+
+// ======================================================================
+// MODULE 4: Tomography
+// ======================================================================
+let tomoKind = 'phi_plus';
+let tomoShots = 200;
+
+$('#tomo-bell-picker').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  $$('#tomo-bell-picker button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  tomoKind = e.target.dataset.kind;
+});
+$('#tomo-fidelity').addEventListener('input', () => {
+  $('#tomo-fid-val').textContent = parseFloat($('#tomo-fidelity').value).toFixed(3);
+});
+$('#shots-picker').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  $$('#shots-picker button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  tomoShots = parseInt(e.target.dataset.shots, 10);
+});
+
+async function runTomography() {
+  const fidelity = parseFloat($('#tomo-fidelity').value);
+  const r = await fetch(`/api/tomography?kind=${tomoKind}&fidelity=${fidelity}&shots=${tomoShots}`);
+  const data = await r.json();
+  $('#tomo-total').textContent = data.total_shots;
+  $('#tomo-overlap').textContent = fmt(data.hilbert_schmidt_overlap, 4);
+  renderMatrix('#tomo-true', data.rho_true_real, null);
+  renderMatrix('#tomo-hat', data.rho_hat_real, null);
+}
+$('#tomo-run').addEventListener('click', runTomography);
+
+// ---------------- Initial load ----------------
+renderPsi();
+loadMermin();
+loadJointExpectation();
+loadTeleportation();
+loadDensityMatrix();
+runTomography();
+</script>
+</body>
+</html>
